@@ -1,2 +1,1 @@
-make a file inside 
-@lib/notes.ts /system-design/concept.md and create a compressed version of this info so that i can just glance it and revise the whole content, a flash card kinda thing.
+format this info so that i can just glance it and revise the whole content, a flash card kinda thing. make sure it should still look like i have written it so that i can remember the past when i see it these notes and revise at glance. do not change my content or wording — only format it for readability. if you notice any mistakes (conceptual or typos), point them out to me separately instead of silently fixing them.
