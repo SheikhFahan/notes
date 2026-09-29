@@ -12,8 +12,14 @@ library or project layout. Each section separates:
   platform has an equivalent; translate it.
 
 Where a rule depends on a specific library's behaviour rather than on the
-protocol, it says so. If you are only setting up an app registration or a cloud
-console, you do not need this file at all — see `microsoft.md` and `google.md`.
+protocol, it says so; Node/Bun-only details are in `runtime-node.md`. If you
+are only setting up an app registration or a cloud console, you do not need
+this file at all — see `microsoft.md` and `google.md`.
+
+**Scope: authentication only.** Sending-pipeline and message-building design
+(send-queue claims, Sent-folder dedupe, Bcc handling in the MIME build, test
+architecture) is not auth and lives outside this skill, in
+`coding-markdowns/email-client-sending.md` in the notes repo.
 
 **Contents**
 
@@ -26,10 +32,9 @@ console, you do not need this file at all — see `microsoft.md` and `google.md`
 7. Storing the credential
 8. Authenticating the transports
 9. Choosing the send door
-10. Building the message — one render, two artifacts
-11. Surfacing failures
-12. Structure and tests
-13. A checklist before you call it done
+10. Surfacing failures
+11. Testing auth code
+12. A checklist before you call it done
 
 ---
 
@@ -324,7 +329,7 @@ and a slow handshake without refreshing on every connect.
 credential". The mail token is what the account lives on.
 
 `[RULE]` The **app's own** client ID and secret are not secrets in the same
-sense — see `SKILL.md` trap 5 — but the **user's** tokens are. Keep them in the
+sense — see `SKILL.md` trap 1 — but the **user's** tokens are. Keep them in the
 OS keychain, never in the database, never in a log.
 
 ## 8. Authenticating the transports
@@ -461,75 +466,20 @@ before the API door existed carries "sending unavailable". It is still true
 about SMTP and no longer true about the account, so the send path must ignore
 it for an API-door row.
 
-Order of operations in the sender, which matters more than it looks:
-
-1. Resolve the credential — **a keychain read is not a transmission**, so it is
-   safe before the claim, and failing here costs nothing.
-2. **Claim the row** (pending → sending, with a lease) before any network I/O.
-   `[RULE]` A double send is unrecoverable, so this is not at-least-once
-   delivery. A crash mid-send strands the claim for an honest "may or may not
-   have been sent"; nothing ever retransmits it.
-3. Build the message.
-4. Transmit.
-5. **Past this line nothing may fail the row.** The mail has left. A failed
-   Sent-folder copy is recorded as copy state, never as a send failure.
-
-`[RULE]` If the account is offline, **wait unclaimed** rather than failing. An
-offline send is a queue, not an error.
-
-## 10. Building the message — one render, two artifacts
-
-Render the body **once**, mint the Message-ID **once**, then produce two things
-from the same input:
-
-- **The structured payload** for SMTP: the `Bcc:` header must be absent from
-  the bytes on the wire while the SMTP **envelope** (`RCPT TO`) still names
-  every blind recipient. That is RFC-correct blind copying.
-
-  `[RULE]` **Verify who does that stripping in your stack, before you send
-  anything to a real person.** Some libraries remove the header for you when
-  you hand them a structured message; some send exactly the bytes you give them
-  and derive recipients from an explicit list, in which case the header goes
-  out intact and every recipient sees the Bcc. Send a test message with a Bcc
-  to two addresses you control and read the raw source of the To recipient's
-  copy. Getting this wrong is a privacy incident, not a build failure, and it
-  fails silently.
-- **The raw bytes with Bcc kept**, for the Sent-folder copy. The user's own
-  record should show who they blind-copied.
-
-`[RULE]` **Pin the Message-ID before building anything.** Two independent
-builds each invent their own random id, and then the Sent-folder dedupe
-searches for an id the server's own auto-filed copy does not carry. This is a
-real, reproduced race.
-
-For an API send (`microsoft.md` §8), send the **keep-Bcc** bytes: `[MEASURED 2026-09-19]`
-the server reads the header as the envelope, delivers the blind recipients, and
-strips the header from the To recipient's copy.
-
-`[RULE]` If the server files its own Sent copy (Gmail and Graph both do), keep
-your append and dedupe by the pinned Message-ID — search first, append only on
-a miss, and take the server copy's uid on a hit. That way the local "sent" row
-exists either way, and anything derived from it still fires. See `microsoft.md`
-§8 for when a plain folder resync is the better choice instead.
-
-`[RULE]` Resolve special folders (Sent, Drafts, Trash, Junk) by the flags the
-server advertises, never by hardcoded English names — providers localise them,
-and Exchange advertises no `SPECIAL-USE` at all.
-
-## 11. Surfacing failures
+## 10. Surfacing failures
 
 `[RULE]` **Quote the server; never paraphrase it.** Only the provider knows why
-it said no, and paraphrasing is what hides the answer. The IMAP library throws
-the same generic `Command failed` for every tagged NO — the server's sentence is
-on a different field entirely (`responseText`; the SMTP library uses
-`response`). Reading only `.message` reports one indistinguishable failure for
-a mistyped app password, a revoked one, and "application-specific password
-required".
+it said no, and paraphrasing is what hides the answer. IMAP libraries commonly
+throw the same generic "command failed" for every tagged NO — the server's
+sentence is on a different field entirely (the Node libraries' field names are
+in `runtime-node.md` §2). Reading only the exception's main message reports one
+indistinguishable failure for a mistyped app password, a revoked one, and
+"application-specific password required".
 
 `[RULE]` Classify **policy before credentials**. A mailbox-policy refusal
-arrives wrapped in the SMTP library's `Invalid login:` prefix, which will match
-any credential regex — and then the app tells the user to re-enter a credential
-the server did not refuse.
+can arrive wrapped in the SMTP library's own "invalid login" prefix, which will
+match any credential regex — and then the app tells the user to re-enter a
+credential the server did not refuse.
 
 `[RULE]` Keep the verdicts distinct, because each has a different fix: name not
 resolved, connection refused, no certificate arrived, certificate failed
@@ -543,45 +493,7 @@ belongs on a credential refusal, never on a TLS or network failure.
 must never be recorded as a negative verdict — see the probe rule in
 `microsoft.md` §9.
 
-## 12. Structure and tests
-
-`[RULE]` **Keep the transport layer free of UI and database imports**, and
-enforce it with a test that walks the directory and fails on a forbidden
-import. Without the test the rule is a comment nobody reads. The payoff is that
-the engine can move to a background process later carrying its injected
-interfaces, rather than being rewritten.
-
-**Dependency injection is the test seam.** Every module exports a pure function
-or class plus a `…Deps` type, and every impure edge is a field on it: `fetch`,
-the clock, the sleep between retries, the transport factory, the MX resolver.
-
-Three test patterns that work, in order of preference:
-
-1. **A recorded fake `fetch`.** Construct real `Response` objects; assert on
-   the recorded URL, method, headers and body. Nothing reaches the provider.
-   ```ts
-   function capture(response: () => Response) {
-     const calls: { url: string; init: RequestInit }[] = [];
-     const fetchImpl = (async (url, init = {}) => {
-       calls.push({ url: String(url), init });
-       return response();
-     }) as unknown as typeof fetch;
-     return { calls, deps: { fetchImpl, sleep: async () => undefined } };
-   }
-   ```
-2. **Plain-function fakes that record call ORDER.** For a send pipeline the
-   load-bearing assertion is not the output, it is the sequence:
-   ```ts
-   expect(order).toEqual(["claim", "createTransport", "sendMail", "append", "record", "markSent"]);
-   ```
-   Keep the MIME layer **real** so the recorded bytes carry the actual pinned
-   Message-ID.
-3. **A real socket server replaying measured dialogue.** For protocol
-   behaviour, script a plain TCP server on `127.0.0.1:0` with the capability
-   list and the refusal string you actually measured, and run the real client
-   against it over a non-TLS endpoint. This is the only way to test
-   credential redaction, and the only way to prove an alternate host was *not*
-   contacted.
+## 11. Testing auth code
 
 `[RULE]` Pin a published test vector where one exists — RFC 7636's PKCE vector
 costs one test and catches a broken base64url encoder.
@@ -589,7 +501,15 @@ costs one test and catches a broken base64url encoder.
 `[RULE]` Put the provider's real error strings in the tests **verbatim**. They
 are the specification; a paraphrase in a fixture is a bug waiting to pass.
 
-## 13. A checklist before you call it done
+`[RULE]` To test credential redaction, script a plain TCP server on
+`127.0.0.1:0` that replays the capability list and the refusal string you
+actually measured, and run the real client against it over a non-TLS endpoint.
+It is the only way to test redaction, and the only way to prove an alternate
+host was *not* contacted. (General test architecture — dependency injection,
+recorded fakes, call-order assertions — is in
+`coding-markdowns/email-client-sending.md`.)
+
+## 12. A checklist before you call it done
 
 - [ ] Sign in, in a **private browser window**, and read the consent screen. Is
       every line something the app uses? A line that grants nothing reads as a
@@ -598,9 +518,6 @@ are the specification; a paraphrase in a fixture is a bug waiting to pass.
       the next refresh. Compare them (§6).
 - [ ] The account pairs with sending **enabled**, where it should be.
 - [ ] Send to an address you control. It arrives.
-- [ ] Send with Cc **and** Bcc. The blind recipient receives it; the To
-      recipient's copy carries no `Bcc:` header.
-- [ ] The Sent folder holds **exactly one** copy.
 - [ ] Leave the app running past the access-token lifetime (~1 h) and send
       again.
 - [ ] Control: an account of the *other* class still works unchanged.

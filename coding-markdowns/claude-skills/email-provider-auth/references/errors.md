@@ -32,7 +32,7 @@ way to send a user chasing the wrong fix.
 | `NO [ALERT] Application-specific password required: https://support.google.com/accounts/answer/185833` | The account password was used | Quote it and add **nothing** — the provider's own instruction beats yours |
 | `NO Incorrect username, password or access token.` | `[MEASURED 2026-09-14]` Fastmail's generic refusal | — |
 | `NO LOGIN failed.` | Microsoft's answer to a real app password on a real account `[VENDOR]` | Basic auth is gone; use OAuth |
-| `Command failed` **and nothing else** *(client-side)* | `[MEASURED]` The IMAP library's generic wrapper for every tagged NO/BAD. The server's real sentence is on another field | Read `responseText` (`implementation.md` §11) |
+| `Command failed` **and nothing else** *(client-side)* | `[MEASURED]` The IMAP library's generic wrapper for every tagged NO/BAD. The server's real sentence is on another field | Read the library's server-text field — `responseText` in imapflow (`runtime-node.md` §2; `implementation.md` §10) |
 
 ## TLS and network
 

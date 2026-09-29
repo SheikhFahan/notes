@@ -105,45 +105,18 @@ the app password.
 triggers the race, while connecting one address at a time removes the race.
 This is also what a mainstream mail client does for mail sockets.
 
+**Distinguish "no certificate arrived" from "the certificate failed".** A
+certificate object with neither a subject nor any SAN was never received, not
+verified — report it with its own error code so nothing downstream re-wraps it
+as a verification failure, and defer every other case to the platform's default
+check, unchanged.
+
 `[RULE]` **If your platform lets you override the hostname check, overriding
 it REPLACES the default — it does not run alongside it.** So you must call the
-default yourself and return its verdict. In Node and Bun that means
-`checkServerIdentity`, where returning `undefined` means "identity OK". Supplying the callback at all *replaces* Node's default hostname check,
-so you must call it yourself and return its result. Get this wrong and you have
-silently disabled hostname verification for every host that does present a
-certificate — a far worse bug than the one you set out to fix.
-
-```ts
-import { checkServerIdentity as nodeCheckServerIdentity } from "node:tls";
-import type { ConnectionOptions, PeerCertificate } from "node:tls";
-
-export const NO_CERTIFICATE_CODE = "ERR_TLS_NO_CERTIFICATE";
-
-export function requireServerCertificate(
-  hostname: string,
-  cert: PeerCertificate,
-): Error | undefined {
-  // Neither a subject nor any SAN means this certificate was not verified —
-  // it was never received. Say that, with a distinct code so nothing
-  // downstream re-wraps it as a verification failure.
-  if (cert.subject === undefined && cert.subjectaltname === undefined) {
-    return Object.assign(
-      new Error(`No server certificate arrived from ${hostname}; the secure connection was not completed.`),
-      { code: NO_CERTIFICATE_CODE },
-    );
-  }
-  // Everything else defers to Node, unchanged, so this is NEVER weaker than
-  // the default.
-  return nodeCheckServerIdentity(hostname, cert);
-}
-
-const IMAP_TLS_OPTIONS: ConnectionOptions = {
-  // A net.connect option that tls.connect forwards; @types/node 20.x does not
-  // list it on ConnectionOptions, hence the cast.
-  ...({ autoSelectFamily: false } as ConnectionOptions),
-  checkServerIdentity: requireServerCertificate,
-};
-```
+default yourself and return its verdict. Get this wrong and you have silently
+disabled hostname verification for every host that does present a certificate
+— a far worse bug than the one you set out to fix. Node/Bun code for both
+rules: `runtime-node.md` §1.
 
 **Where it goes.** One options object on the IMAP client, used for **both** the
 implicit-TLS connect and the STARTTLS upgrade — a STARTTLS session that skips
@@ -191,9 +164,4 @@ passes on completely unfixed code.
    connect-path bug itself is a Bun behaviour and cannot be reproduced against
    a local socket server.
 
-`[VENDOR]` Upstream bug `oven-sh/bun#41271`, open. `[MEASURED 2026-09-14]`
-Upgrading Bun does not fix it.
-
-`[UNVERIFIED]` Whether the SMTP leg is affected the same way. The measured
-SMTP client connects by IP, which would side-step it, but that has not been
-confirmed against a host slower than 250 ms.
+Upstream bug status and upgrade result for Bun: `runtime-node.md` §1.

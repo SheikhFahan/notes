@@ -113,6 +113,12 @@ https://support.google.com/accounts/answer/185833` — say nothing extra. The
 provider's instruction beats yours, and two overlapping instructions read as a
 contradiction.
 
+## Sent folder
+
+Gmail files its own Sent copy of a message you send. An app that also appends
+one must dedupe — that is app design, see
+`coding-markdowns/email-client-sending.md` in the notes repo.
+
 ## Verbatim failures
 
 | String | Means |

@@ -7,6 +7,7 @@ document.
 
 **Contents**
 
+0. Read first — the two mailbox classes, and the traps
 1. Two accounts are involved, and they are not the same thing
 2. The app registration — every setting that is not optional
 3. Declaring permissions
@@ -18,8 +19,111 @@ document.
 9. Probes that write nothing and send nothing
 10. The consumer-consent outage, and everything it refuted
 11. Documented limits worth knowing
+12. Open questions
 
 ---
+
+## 0. Read first — the two mailbox classes, and the traps
+
+### The two classes — this is the whole difficulty
+
+Both Microsoft classes share **one IMAP host**. The host therefore cannot tell
+them apart; the address can. Consumer domains are `outlook.com`, `hotmail.*`,
+`live.*`, `msn.com`. Anything else Microsoft-hosted (decided by MX) is
+work/school.
+
+**The consumer domain list is exact, not a pattern.** `hotmail.co.uk` is a
+separate entry from `hotmail.com`; a glob like `hotmail.*` will be implemented
+three different ways and get two-label TLDs wrong.
+
+```
+outlook.com   hotmail.com   hotmail.co.uk   live.com   msn.com
+```
+
+`[UNVERIFIED]` That list is not exhaustive — `hotmail.fr`, `live.co.uk` and
+other national variants exist and are **not** in it. Widening it also moves
+SMTP host selection, so measure before adding.
+
+`[RULE]` **Both classes use the same IMAP host.** Do not split IMAP hosts the
+way the SMTP hosts split (trap 5 below). If a send-door check keys on the IMAP
+host and a consumer account was paired on a different one, the check silently
+returns false and the account loses its only way to send, with no error
+anywhere.
+
+|  | Work / school | Personal (MSA) |
+|---|---|---|
+| Sign-in | OAuth, `/common` authority `[VENDOR]` | OAuth, `/common` authority `[VENDOR]` |
+| IMAP | Works | Works, once the mailbox's IMAP toggle is on `[MEASURED 2026-09-15]` |
+| SMTP AUTH | Disabled by default since Jan 2020; **an admin enables it per mailbox** | **Refused permanently. No lever exists.** |
+| Sending | SMTP | Graph `POST /me/sendMail` |
+| Graph mail read | Available with `Mail.Read` | `[MEASURED 2026-09-19]` A consumer grant has none: `GET /me/mailFolders/inbox` → 403 |
+
+`[MEASURED 2026-09-14/15/17]` A personal mailbox answers
+`535 5.7.139 Authentication unsuccessful, SmtpClientAuthentication is disabled
+for the Mailbox.` on **both** documented SMTP hosts, with a token IMAP had
+accepted seconds earlier, and reproduces identically under a different vendor's
+publisher-verified client ID. Host, client, scopes and credential are all ruled
+out by that one measurement. A third-party reporter says Microsoft support told
+them SMTP AUTH cannot be enabled for an individual personal mailbox — see §7 for
+why that is second-hand, not vendor documentation.
+
+### Traps
+
+Each of these cost real time. Cause, then symptom.
+
+1. **Scope re-prefixing.** `[MEASURED 2026-09-19]` Microsoft re-stamps every
+   consented scope with whatever resource the *request* named. One grant came
+   back as `https://outlook.office.com/Mail.Send` on the code leg and
+   `https://graph.microsoft.com/Mail.Send` on the very next refresh. → Match
+   scopes on the **permission name** (the last path segment), never the full
+   URI. Exact matching loses a real grant, so the second-resource token stops
+   being minted, the wrong token goes to the API, and you get a silent 401 that
+   looks like the provider's fault. Full measurement: §5.
+
+2. **`Mail.Send` ≠ `/me/messages`.** `[MEASURED 2026-09-19]` **`Mail.Send`
+   authorizes exactly one endpoint.** On a grant holding `Mail.Send`, with a
+   readable mailbox, `POST /me/sendMail` answers 202 and `POST /me/messages`
+   answers 403 `ErrorAccessDenied` — `/me/messages` needs `Mail.ReadWrite`,
+   which is a different permission. A draft-then-send flow therefore needs a
+   strictly larger grant than a single send does. → Every 403 you measure
+   against the wrong endpoint is evidence about a permission you never asked
+   for. Probe the endpoint the scope under test actually covers.
+
+3. **`535 5.7.139` has two endings and the last word is the diagnosis.**
+   "…disabled for the **Tenant**" means the per-mailbox value is unset and
+   inheriting a tenant default — an admin fixes it. "…disabled for the
+   **Mailbox**" is an explicit per-mailbox block, and on a consumer account no
+   lever exists. → Match on the **sentence**, not on `5.7.139`; the same code
+   also carries "basic authentication is disabled", a third situation.
+
+4. **One resource per token request, many per authorize request.**
+   `[MEASURED]` Redeeming scopes from two resources at the token endpoint
+   returns `AADSTS28000: … scope is not valid because it contains more than
+   one resource.` `[VENDOR]` `/authorize` explicitly "can cover multiple
+   resources". → Consent once for everything; redeem the code for the resource
+   you need first; mint the second token from the same refresh token
+   afterwards.
+
+5. **Microsoft documents two SMTP hosts, and neither causes a policy refusal.**
+   `smtp-mail.outlook.com` for Outlook.com/Hotmail/Live/MSN,
+   `smtp.office365.com` for Microsoft 365. `[MEASURED 2026-09-15]` The same new
+   personal mailbox is refused on both. → Split the hosts for conformance, and
+   do not report the host as the cause.
+
+6. **A 403 from a mailbox-less account says nothing about a permission.**
+   `[MEASURED 2026-09-19]` An account with no Exchange Online licence answers
+   403 to everything. → Check `GET /me/mailFolders/inbox` **before** concluding
+   anything about a scope. What voids the result is a **404 /
+   `MailboxNotEnabledForRESTAPI`** — there is no mailbox Graph can see.
+   `[MEASURED 2026-09-19]` A **403** there is the *expected* answer on a
+   consumer grant, which carries no Graph mail read at all, so on a personal
+   account this check can never return 200 and a 403 is not a failure. Read it
+   for the 404 only.
+
+7. **Microsoft rotates the refresh token on every use.** → Every token read is
+   a read-modify-write of one stored credential. Two concurrent readers will
+   strand the account. Serialize per credential, and persist a refresh
+   **before** returning it.
 
 ## 1. Two accounts are involved, and they are not the same thing
 
@@ -116,9 +220,14 @@ does NOT publish IMAP or SMTP scopes** — its only `*.AccessAsUser.All` entries
 are EAS and EWS. Do not add anything there, and do not edit the manifest by
 hand.
 
-`[MEASURED]` "Admin consent required" is **No** for all of these. Do not click
+`[MEASURED 2026-09-19]` "Admin consent required" is **No** for all of these
+in the portal, and consumer users consented for themselves. Do not click
 "Grant admin consent" — each user consents for themselves at first sign-in,
-which is what keeps the app self-serve.
+which is what keeps the app self-serve. `[UNVERIFIED]` Whether every
+work/school tenant agrees: `[VENDOR]` `AADSTS90094` describes an admin wall for
+a multitenant app registered after 2020-11-08 requesting "non-basic"
+permissions from users outside its registering tenant, and whether `Mail.Send`
+counts as non-basic there is not established.
 
 **Why the names look mismatched.** The app *requests* these with a resource
 prefix, because the token endpoint is addressed by resource:
@@ -132,6 +241,19 @@ offline_access openid profile
 
 …but the permission *names* are published by Graph. Which API publishes a
 permission and which resource a token is minted for are different things.
+
+**What each scope authorizes, and the line it prints on the consent screen:**
+
+| Scope string | Authorizes | Consent line |
+|---|---|---|
+| `https://outlook.office.com/IMAP.AccessAsUser.All` | IMAP | "Read and write access to your email … Does not include permission to send mail." `[MEASURED 2026-09-19]` |
+| `https://outlook.office.com/SMTP.Send` | SMTP AUTH | "Access to sending emails from your mailbox" `[MEASURED 2026-09-15]` |
+| `https://outlook.office.com/POP.AccessAsUser.All` | POP | **Word-for-word identical to the IMAP line** `[MEASURED 2026-09-19]` — asking for both prints the same sentence twice and reads as a bug |
+| `https://graph.microsoft.com/Mail.Send` | **Only** `POST /me/sendMail` (trap 2) | "Send email as you" `[MEASURED 2026-09-19]` |
+| `https://graph.microsoft.com/Mail.Read` | Graph mail read `[VENDOR]` | |
+| `https://graph.microsoft.com/User.Read` | `GET /me`, `/me/photo` `[VENDOR]` | |
+| `offline_access` | Issues a refresh token | "Maintain access to data you have given the app access to" `[MEASURED 2026-09-15]` |
+| `openid`, `profile` | Puts `name` in the id_token `[VENDOR]` | |
 
 `[RULE]` **Verify the registration's live state instead of assuming it.** A
 delegated permission that was never declared is invisible from the client side:
@@ -201,7 +323,7 @@ Why the consumer request is smaller:
   mailbox can never use SMTP, so on this request the scope grants nothing
   usable. It is kept because it predates the Graph send door, because the same
   registration must declare it for work/school addresses, and because removing
-  it has never been measured. `[UNVERIFIED]` Whether carrying both `SMTP.Send`
+  it has never been measured — do not remove it casually. `[UNVERIFIED]` Whether carrying both `SMTP.Send`
   and `Mail.Send` prints two send lines on the consent screen — if it does, one
   of them is exactly the kind of line that grants nothing and reads as a bug.
 
@@ -242,18 +364,11 @@ scopes came back carrying every previously-consented permission, all stamped
 `graph.microsoft.com/…`; on another day the identical set came back stamped
 `outlook.office.com/…`.
 
-**The prefix carries no information.** Match on the last path segment.
-
-```ts
-/** The permission NAME in a scope string. Anything that is not an https scope
- *  (offline_access, openid) and any scope whose path is empty
- *  (https://mail.google.com/) keeps its whole string. */
-function permissionName(scope: string): string {
-  if (!scope.startsWith("https://")) return scope;
-  const leaf = scope.slice(scope.lastIndexOf("/") + 1);
-  return leaf === "" ? scope : leaf;
-}
-```
+**The prefix carries no information.** Match on the last path segment — the
+permission NAME. Anything that is not an https scope (`offline_access`,
+`openid`) and any scope whose path is empty (`https://mail.google.com/`) keeps
+its whole string. The function and the refresh-leg narrowing built on it are
+in `implementation.md` §6.
 
 **What breaks without it, and why it is silent.** Each refresh overwrites the
 stored scope string with that leg's echo. Match full URIs and the stored
@@ -305,8 +420,14 @@ changed. A new mailbox's IMAP access flaps. The refusal looks like
 `NO User is authenticated but not connected.` — the token is valid for the mail
 resource and the mailbox refused the session.
 
-**Passwords.** `[MEASURED 2026-09-16]` Refused pre-auth on every host (see
-`SKILL.md` §2). App passwords do not help — same switch.
+**Passwords.** Refused pre-auth on every host, for both classes — the probe is
+`SKILL.md` §2. `[MEASURED 2026-09-13]` `outlook.office365.com:993` greets with
+`AUTH=XOAUTH2 LOGINDISABLED` and advertises no password mechanism.
+`[MEASURED 2026-09-16]` both `outlook.office365.com:993` and
+`imap-mail.outlook.com:993` answer `LOGIN` **and** `AUTHENTICATE PLAIN` with
+`NO Basic authentication is disabled.` — before any account is looked up, so
+the answer does not depend on having credentials. App passwords do not help —
+same switch.
 
 **SMTP.** Refused by policy, permanently. The full live string:
 
@@ -389,22 +510,14 @@ inside `sendMail`'s MIME is undocumented — but that flow opens with
 `POST /me/messages`, which needs `Mail.ReadWrite`, a strictly larger grant.
 
 **Graph files its own Sent copy.** `[MEASURED 2026-09-19]` Found in Sent Items
-by Message-ID after a send. `[RULE]` If you also append your own copy, dedupe
-by a **pinned** Message-ID — generate it once, before building anything, and
-use it in every artifact. Two independent MIME builds each invent their own
-random id, and then the dedupe searches for an id the server's copy does not
-carry.
+by Message-ID after a send.
 
 `[UNVERIFIED]` How fast Graph files that copy. A search that beats the filing
 would produce two copies in Sent.
 
-**So do you still append your own copy?** `[RULE]` Yes, if anything in your app
-is derived from the local "this was sent" row — an event, a thread update, a
-read receipt. A Message-ID dedupe that searches first returns the **server's**
-copy and its uid on a hit, so you get the row either way and never a duplicate.
-Replacing the append with a plain folder resync drops whatever that row drives,
-and outgoing mail starts arriving through the *received* path. If nothing is
-derived from it, a resync is simpler and equally correct.
+Whether to append your own Sent copy as well, and how to dedupe it by a pinned
+Message-ID, is app design rather than auth — see
+`coding-markdowns/email-client-sending.md` in the notes repo.
 
 `[RULE]` **Never retry a non-GET on 429.** The server may have acted on the
 first one, and a re-issued send sends twice.
@@ -465,9 +578,8 @@ endpoint echoes on both the code leg and the next refresh. That is the only way
 to see re-prefixing (§5).
 
 `[RULE]` Every probe should print what it asked for, what came back, and never
-a token. Redact the XOAUTH2 blob (`user=<addr>\x01auth=Bearer <token>\x01\x01`)
-and the AUTH PLAIN blob (`\0<user>\0<secret>`) explicitly — both are just
-base64 and will otherwise appear in a wire log.
+a token. The XOAUTH2 and AUTH PLAIN blobs are just base64 and must be redacted
+explicitly — the three forms to withhold are listed in `implementation.md` §8.
 
 ## 10. The consumer-consent outage, and everything it refuted
 
@@ -497,11 +609,20 @@ a personal account      3 scopes  → server_error, 7.3 s
 The personal account requested **fewer** scopes and still failed. The variable
 was the account class.
 
-**Refuted in that window** — each tested and cleared, and each still worth not
-re-deriving:
+**Refuted** — each tested and cleared, and each still worth not re-deriving.
+
+⚠ **Read the whole list with one caveat.** Most of these were measured during
+`[MEASURED 2026-09-17/18]`, a window in which *every* consumer sign-in failed —
+the same window this section says never to draw a scope conclusion from. They
+are sound as "this is not the cause of the outage"; they are weaker as general
+claims about scopes. The ones that do not depend on that window are the SMTP
+host, the alias username and the client ID, all measured against a working
+control (§7).
 
 | Claim | How it died |
 |---|---|
+| The wrong SMTP host causes the policy refusal | Both hosts, same account, same refusal (§7) — not outage-dependent |
+| The username is an alias, not the primary address | The two usernames produce two *different* enhanced status codes, which is the opposite of what an alias problem looks like (§7) — not outage-dependent |
 | Application code | Stashed back to a known-good commit; same failure |
 | `response_mode=query` | Failure predates it, reproduces without it |
 | The app registration | Four separate registrations, including one created fresh in a real Entra tenant, all identical |
@@ -553,3 +674,20 @@ downstream.
 - Exchange advertises no `SPECIAL-USE`, no `CONDSTORE` and no `QRESYNC`
   `[MEASURED]`. Resolve special folders by the flags the server does give, and
   never by hardcoded English names.
+
+## 12. Open questions
+
+`[UNVERIFIED]` — written as questions because nobody has run them.
+
+- Does a consumer request carrying both `SMTP.Send` and Graph `Mail.Send`
+  print two send lines on the consent screen? If it does, one of them is
+  redundant for an app that sends via Graph. (Context: §4.)
+- Does dropping `SMTP.Send` from the consumer request change the consent
+  screen, or anything else? Never tried. (Context: §4.)
+- Does an app password pass SMTP `AUTH LOGIN` on a real personal Microsoft
+  mailbox? SMTP still advertises `AUTH LOGIN`; nobody has tried it with a
+  genuine app password.
+- **What does a 403 on `/me/sendMail` mean when the mailbox IS visible and
+  `Mail.Send` IS consented?** There is no record of that case. Conditional
+  Access, Exchange application access policies and shared-mailbox sends
+  (`/users/{id}/sendMail`) are all outside everything measured for this.
