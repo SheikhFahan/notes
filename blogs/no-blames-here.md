@@ -34,3 +34,17 @@ I was building an agentic email client; the problem was the it couldn't send ema
 and used that info to give small and meaningful context to my coding agent and run scripts to verify claims before trying a possible solution.
 
 **Current state:** my email client now sends emails from Outlook accounts that Thunderbird is failing for.
+
+## Use the skill yourself
+
+Everything I dug up along the way went into a Claude skill: [email-provider-auth](/notes/coding-markdowns/claude-skills/email-provider-auth/SKILL). It covers Outlook/Microsoft 365, Gmail and app-password providers (iCloud, Fastmail, Yahoo): OAuth scopes, XOAUTH2, and the exact error strings you'll hit. Every claim is tagged as measured, vendor-documented, a design rule, or unverified.
+
+Install it for Claude Code:
+
+```sh
+mkdir -p ~/.claude/skills
+curl -sL https://github.com/SheikhFahan/notes/archive/main.tar.gz \
+  | tar -xz -C ~/.claude/skills --strip-components=3 notes-main/coding-markdowns/claude-skills/email-provider-auth
+```
+
+Source on [GitHub](https://github.com/SheikhFahan/notes/tree/main/coding-markdowns/claude-skills/email-provider-auth). Companion note on the send pipeline: [Email client — sending and message design](/notes/coding-markdowns/email-client-sending).
