@@ -37,7 +37,7 @@ and used that info to give small and meaningful context to my coding agent and r
 
 ## Use the skill yourself
 
-Everything I dug up along the way went into a Claude skill: [email-provider-auth](/notes/plugins/email-provider-auth/skills/email-provider-auth/SKILL). It covers Outlook/Microsoft 365, Gmail and app-password providers (iCloud, Fastmail, Yahoo): OAuth scopes, XOAUTH2, and the exact error strings you'll hit. Every claim is tagged as measured, vendor-documented, a design rule, or unverified.
+Everything I dug up along the way went into a Claude skill: [email-provider-auth](/notes/skills/email-provider-auth/SKILL). It covers Outlook/Microsoft 365, Gmail and app-password providers (iCloud, Fastmail, Yahoo): OAuth scopes, XOAUTH2, and the exact error strings you'll hit. Every claim is tagged as measured, vendor-documented, a design rule, or unverified.
 
 Install it as a Claude Code plugin — inside Claude Code, run:
 
@@ -48,4 +48,13 @@ Install it as a Claude Code plugin — inside Claude Code, run:
 
 Claude picks it up whenever a task touches email sign-in. Get later updates with `/plugin marketplace update sheikhfahan-notes`.
 
-Source on [GitHub](https://github.com/SheikhFahan/notes/tree/main/plugins/email-provider-auth). Companion note on the send pipeline: [Email client — sending and message design](/notes/coding-markdowns/email-client-sending).
+Prefer a plain skill? Clone the repo and link it in — `git pull` keeps it up to date:
+
+```sh
+git clone https://github.com/SheikhFahan/notes.git && cd notes
+mkdir -p ~/.claude/skills && ln -s "$PWD/skills/email-provider-auth" ~/.claude/skills/email-provider-auth
+```
+
+Or copy the [`skills/email-provider-auth`](https://github.com/SheikhFahan/notes/tree/main/skills/email-provider-auth) folder into `~/.claude/skills/`.
+
+Companion note on the send pipeline: [Email client — sending and message design](/notes/coding-markdowns/email-client-sending).
