@@ -1,7 +1,7 @@
 # Email client — sending and message design
 
 Companion to the `email-provider-auth` skill
-(`coding-markdowns/claude-skills/email-provider-auth/`). These are app-design
+(`plugins/email-provider-auth/skills/email-provider-auth/`). These are app-design
 rules for a mail client's send pipeline, message building and test
 architecture. They are not authentication, so they were moved out of the
 skill's `references/implementation.md`, verbatim. Tags (`[MEASURED]`,
