@@ -8,8 +8,6 @@ image: ./no-blames-here-card.png
 
 In my recent attempts at being an AI maximalist, I got stumped. "Frustrated Claude."
 
-![Claude Code, asked "are you frustrated?": "Something like it, mild. Not at you."](./no-blames-here.png)
-
 around 5 am'ish, I was stuck at an issue; Claude had pretty much run out of ideas.\
 TBH it made me happy initially! thought "I'm gonna keep my job for a while if I end up implementing it!"
 
@@ -19,6 +17,8 @@ felt better; better than Claude.
 
 Now I realise I was wrong all along. I can't blame a hammer if I can't use it on a nail.\
 These tools aren't here to replace us; they filter out the ones who are most efficient at using them, ideally taking them to their limits without sacrificing quality. Thinking critically, taking complete ownership of the AI-written code and never trust it "completely".
+
+![Claude Code, asked "are you frustrated?": "Something like it, mild. Not at you."](./no-blames-here.png)
 
 ## What I was trying to do?
 
