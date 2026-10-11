@@ -1,15 +1,13 @@
-# MX Master 4 configs
+# Pomodoro toggle
 
-## Pomodoro toggle
+One MX Master 4 mouse button that controls the pomodoro timer of the **TaskNotes** plugin in Obsidian.
 
-One mouse button that controls the pomodoro timer of the **TaskNotes** plugin in Obsidian.
-
-### Use case
+## Use case
 
 Start, pause and resume a focus session from the mouse, without switching to Obsidian or
 opening the command palette. A macOS notification confirms what happened.
 
-### What it does
+## What it does
 
 Each press checks the current pomodoro state through the TaskNotes HTTP API:
 
@@ -17,20 +15,20 @@ Each press checks the current pomodoro state through the TaskNotes HTTP API:
 - paused -> resume
 - idle -> start a new 100 min work session (TaskNotes caps a session at 120)
 
-### Files
+## Files
 
 Both live in `~/bin/pomodoro/`.
 
-- `toggle.applescript` — runs `toggle.py` and shows the result as a notification
-- `toggle.py` — talks to the TaskNotes API; reads the port and auth token from
+- [`toggle.applescript`](https://github.com/SheikhFahan/notes/blob/main/os-setup/mxmaster4-configs/toggle.applescript) — runs `toggle.py` and shows the result as a notification
+- [`toggle.py`](https://github.com/SheikhFahan/notes/blob/main/os-setup/mxmaster4-configs/toggle.py) — talks to the TaskNotes API; reads the port and auth token from
   `~/Documents/journal/.obsidian/plugins/tasknotes/data.json`
 
-### Requirements
+## Requirements
 
 - Obsidian open with the TaskNotes plugin installed
 - Settings > TaskNotes > Integrations > HTTP API enabled
 
-### Automation (Logi Options+)
+## Automation (Logi Options+)
 
 The button is a Logi Options+ action on the MX Master 4 Actions Ring:
 
