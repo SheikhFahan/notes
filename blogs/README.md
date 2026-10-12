@@ -21,16 +21,20 @@ image: ./orm-cover.jpg
 
 | Field | Used for | If left out |
 |---|---|---|
-| `title` | Card headline, browser tab, `/notes` list | First `# ` heading, else the file name |
+| `title` | Card headline, browser tab, `/notes` list | `# ` heading on the first line, else the file name (`my-post` → "My post") |
 | `description` | Card text, `/notes` list (cut at 160 chars) | First paragraph of the post |
 | `date` | Date shown and sort order on `/notes` (`YYYY-MM-DD`) | File modified time (unreliable on the live site) |
 | `image` | Card image | Site default (autumn photo) |
+| `cover` | Wide image at the top of the post, under the date | No cover |
 
 Rules:
 - One `key: value` per line; no nesting or multi-line values. Quotes around a value are optional.
-- `image` is a path relative to the post (`./orm-cover.jpg`, `../images/x.png`) or a full `https://` URL.
+- `image` and `cover` are a path relative to the post (`./orm-cover.jpg`, `../images/x.png`) or a full `https://` URL.
   Local images must be inside this repo and jpg, jpeg, png, webp or gif. They're served at `/media/<path in this repo>`.
+- The page header shows the headline, then `description` (blog posts only, and only when set here), then `date` and read time.
+  The headline is the `# ` heading on the post's first line (even when `title` differs), else `title`; that heading isn't repeated below.
 - Images inside a post work the same way: `![alt text](./pic.png)` with the file next to the post.
+  An image on its own line gets a caption: `![alt](./pic.png "Caption")` shows "Caption", else the alt text is shown.
 - Card images: 1200×630 (1.91:1), under 5 MB. X crops other shapes to fit.
 - A wrong `image` path doesn't break the build; the post falls back to the default image and the build logs a warning.
 
