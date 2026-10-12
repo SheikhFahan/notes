@@ -1,3 +1,7 @@
+---
+date: 2026-07-13
+---
+
 # Find the Duplicate Number
 
 > **LeetCode:** [Find the Duplicate Number](https://leetcode.com/problems/find-the-duplicate-number/)

@@ -1,3 +1,7 @@
+---
+date: 2026-09-20
+---
+
 # Writing the client
 
 Tags as in `SKILL.md`.

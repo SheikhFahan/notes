@@ -1,3 +1,7 @@
+---
+date: 2026-06-21
+---
+
 # Check if the Array Is Sorted and Rotated
 
 > **LeetCode:** [Check if Array Is Sorted and Rotated](https://leetcode.com/problems/check-if-array-is-sorted-and-rotated/description/)

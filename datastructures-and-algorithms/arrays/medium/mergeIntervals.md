@@ -1,3 +1,7 @@
+---
+date: 2026-07-13
+---
+
 # Merge Intervals
 
 > **LeetCode:** [Merge Intervals](https://leetcode.com/problems/merge-intervals/description/)

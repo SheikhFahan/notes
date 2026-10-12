@@ -1,3 +1,7 @@
+---
+date: 2026-09-20
+---
+
 # Verbatim server strings, and what each one means
 
 Look up the string you actually received. Tags as in `SKILL.md`. Where a string

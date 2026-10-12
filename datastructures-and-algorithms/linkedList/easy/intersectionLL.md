@@ -1,3 +1,7 @@
+---
+date: 2026-07-26
+---
+
 # Intersection of Two Linked Lists
 
 > **LeetCode:** [Intersection of Two Linked Lists](https://leetcode.com/problems/intersection-of-two-linked-lists/)

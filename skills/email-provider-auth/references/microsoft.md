@@ -1,3 +1,7 @@
+---
+date: 2026-09-20
+---
+
 # Microsoft mail authentication
 
 Entra ID (Azure AD) v2.0, Exchange Online, Outlook.com and Microsoft Graph.

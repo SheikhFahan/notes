@@ -1,3 +1,7 @@
+---
+date: 2026-09-20
+---
+
 # iCloud, Fastmail, Yahoo — and the TLS trap they exposed
 
 Tags as in `SKILL.md`.

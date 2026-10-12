@@ -1,3 +1,7 @@
+---
+date: 2026-07-25
+---
+
 ## Singleton
 
 initialize once use always.

@@ -1,3 +1,7 @@
+---
+date: 2026-09-29
+---
+
 # Email client — sending and message design
 
 Companion to the `email-provider-auth` skill

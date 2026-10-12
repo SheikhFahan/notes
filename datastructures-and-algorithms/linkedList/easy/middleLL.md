@@ -1,3 +1,7 @@
+---
+date: 2026-07-20
+---
+
 # Middle of the Linked List
 
 > **LeetCode:** [Middle of the Linked List](https://leetcode.com/problems/middle-of-the-linked-list/)

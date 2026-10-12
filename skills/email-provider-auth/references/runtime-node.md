@@ -1,3 +1,7 @@
+---
+date: 2026-09-29
+---
+
 # Node and Bun specifics
 
 Tags as in `SKILL.md`. Read this only if the client runs on Node or Bun. Each

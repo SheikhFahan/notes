@@ -1,3 +1,7 @@
+---
+date: 2026-07-13
+---
+
 # Merge Sorted Array
 
 > **LeetCode:** [Merge Sorted Array](https://leetcode.com/problems/merge-sorted-array/)

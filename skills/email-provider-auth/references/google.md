@@ -1,3 +1,7 @@
+---
+date: 2026-09-20
+---
+
 # Google mail authentication
 
 Gmail and Workspace. Tags as in `SKILL.md`.

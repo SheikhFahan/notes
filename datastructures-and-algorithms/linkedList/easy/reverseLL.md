@@ -1,3 +1,7 @@
+---
+date: 2026-07-20
+---
+
 # Reverse Linked List
 
 > **LeetCode:** [Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/)

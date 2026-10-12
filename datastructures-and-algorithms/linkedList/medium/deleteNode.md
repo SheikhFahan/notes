@@ -1,3 +1,7 @@
+---
+date: 2026-07-26
+---
+
 # Delete Node in a Linked List
 
 > **LeetCode:** [Delete Node in a Linked List](https://leetcode.com/problems/delete-node-in-a-linked-list/)

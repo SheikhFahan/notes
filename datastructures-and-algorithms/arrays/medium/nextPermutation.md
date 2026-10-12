@@ -1,3 +1,7 @@
+---
+date: 2026-06-21
+---
+
 # Next Permutation
 
 > **LeetCode:** [Next Permutation](https://leetcode.com/problems/next-permutation/description/)

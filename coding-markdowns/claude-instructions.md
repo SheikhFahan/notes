@@ -1,3 +1,7 @@
+---
+date: 2026-03-22
+---
+
 ## Workflow Orchestration
 
 ## 1. Plan Node Default

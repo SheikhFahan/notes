@@ -1,3 +1,7 @@
+---
+date: 2026-10-11
+---
+
 # Pomodoro toggle
 
 One MX Master 4 mouse button that controls the pomodoro timer of the **TaskNotes** plugin in Obsidian.

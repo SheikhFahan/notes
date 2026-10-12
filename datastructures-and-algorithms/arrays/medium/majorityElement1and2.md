@@ -1,3 +1,7 @@
+---
+date: 2026-07-16
+---
+
 # Majority Element I & II
 
 ## Majority Element I

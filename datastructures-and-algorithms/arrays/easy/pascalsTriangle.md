@@ -1,3 +1,7 @@
+---
+date: 2026-06-21
+---
+
 # Pascal's Triangle
 
 > **LeetCode:** [Pascal's Triangle](https://leetcode.com/problems/pascals-triangle/description/)

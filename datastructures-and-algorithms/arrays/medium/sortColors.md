@@ -1,3 +1,7 @@
+---
+date: 2026-06-27
+---
+
 # Sort Colors
 
 > **LeetCode:** [Sort Colors](https://leetcode.com/problems/sort-colors/description/)

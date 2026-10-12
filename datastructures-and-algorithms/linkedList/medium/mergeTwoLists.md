@@ -1,3 +1,7 @@
+---
+date: 2026-07-20
+---
+
 # Merge Two Sorted Lists
 
 > **LeetCode:** [Merge Two Sorted Lists](https://leetcode.com/problems/merge-two-sorted-lists/description/)

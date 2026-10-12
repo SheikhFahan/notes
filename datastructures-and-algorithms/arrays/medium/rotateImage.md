@@ -1,3 +1,7 @@
+---
+date: 2026-06-27
+---
+
 # Rotate Image
 
 > **LeetCode:** [Rotate Image](https://leetcode.com/problems/rotate-image/description/)

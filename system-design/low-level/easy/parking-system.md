@@ -1,3 +1,7 @@
+---
+date: 2026-09-20
+---
+
 Requirements:
 - Multiple levels & limited slots per level
 - Parking lot can support different vehicles such as cars, motorcycles, and trucks.

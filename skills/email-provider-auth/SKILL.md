@@ -1,6 +1,7 @@
 ---
 name: email-provider-auth
 description: Use when a task touches email account sign-in or a mail provider — IMAP or SMTP connections, OAuth scopes or consent screens, app passwords, refresh tokens or XOAUTH2 for Microsoft (Outlook.com, Hotmail, Live, Microsoft 365), Gmail or Google Workspace, iCloud, Fastmail or Yahoo — including adding or changing a provider, or a mail account reporting "cannot send", "wrong password", 535 5.7.139, an AADSTS error, invalid_grant, or a TLS certificate error on connect. Use before planning, not after the first failure, and even when the user never says "authentication".
+date: 2026-09-20
 ---
 
 # Email provider authentication

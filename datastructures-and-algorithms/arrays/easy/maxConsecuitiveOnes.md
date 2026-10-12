@@ -1,3 +1,7 @@
+---
+date: 2026-06-21
+---
+
 # Max Consecutive Ones
 
 > **LeetCode:** [Max Consecutive Ones](https://leetcode.com/problems/max-consecutive-ones/)
